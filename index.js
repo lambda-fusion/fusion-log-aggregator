@@ -144,9 +144,9 @@ const parseFloatWith = (regex, input) => {
 }
 
 const calcSum = (arr, key) => {
-  return arr.reduce((prev, curr) => {
+  return parseFloat(arr.reduce((prev, curr) => {
     return prev + curr[key]
-  }, 0)
+  }, 0).toFixed(2))
 }
 
 
