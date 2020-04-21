@@ -37,7 +37,7 @@ const gatherData = async () => {
 
         for(const logEvent of latestLogStream.events) {
           if(logEvent.message.startsWith('REPORT')){
-            const parts = logEvent.message.split('\t')
+            const parts = logEvent.message.replace('\n','').split('\t')
             const requestId = /REPORT RequestId: (.*)/.exec(parts[0])[1]
             const duration = parseFloatWith(/Duration: (.*) ms/i, parts[1])
             const billedDuration = parseFloatWith(/Billed Duration: (.*) ms/i, parts[2])
@@ -157,5 +157,4 @@ module.exports.handler = async () => {
   console.log(`Done. Inserted ${Object.values(result).length - errors.length} new entries to DB`)
   return `Done. Inserted ${Object.values(result).length - errors.length} new entries to DB`
 }
-
 
