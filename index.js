@@ -96,7 +96,7 @@ const gatherData = async () => {
       }
       return prev
     }, 0)
-
+    // find smallest starttime
     Object.values(value.invocationInformation).reduce((prev, curr) => {
       if(!curr.starttime){
         return prev
@@ -107,15 +107,12 @@ const gatherData = async () => {
       }
       return prev
     }, Number.MAX_SAFE_INTEGER)
-    const totalMemoryUsed = Object.values(value.invocationInformation).reduce((prev, curr) => {
-      return prev + curr.memoryUsed
-    }, 0)
-    const totalMemoryAllocated = Object.values(value.invocationInformation).reduce((prev, curr) => {
-      return prev + curr.memorySize
-    }, 0)
-    value.totalRuntime = value.endtime - value.starttime
-    value.totalMemoryUsed = totalMemoryUsed
-    value.totalMemoryAllocated = totalMemoryAllocated
+    const invocationInformationArr = Object.values(value.invocationInformation)
+    value.runtime = value.endtime - value.starttime
+    value.totalMemoryUsed = calcSum(invocationInformationArr, 'memoryUsed')
+    value.totalMemoryAllocated = calcSum(invocationInformationArr, 'memorySize')
+    value.totalBilledDuration = calcSum(invocationInformationArr, 'billedDuration')
+    value.totalDuration = calcSum(invocationInformationArr, 'duration')
   })
   //console.dir(result, { depth: null })
 
@@ -133,7 +130,7 @@ const writeToDb = async (result) => {
     await collection.createIndex({ traceId: 1 }, { unique: true })
     try {
       // perform actions on the collection object
-      await collection.insertMany(Object.values(result), {ordered: false})
+      await collection.insertMany(Object.values(result), { ordered: false })
     } catch(err){
       return err.writeErrors
     } finally {
@@ -145,10 +142,11 @@ const parseFloatWith = (regex, input) => {
   const res = regex.exec(input)
   return parseFloat(res[1])
 }
-const run = async () => {
-  const result = await gatherData()
-  const errors = await writeToDb(result) || []
-  console.log(`Done. Inserted ${Object.values(result).length - errors.length} new entries to DB`)
+
+const calcSum = (arr, key) => {
+  return arr.reduce((prev, curr) => {
+    return prev + curr[key]
+  }, 0)
 }
 
 
