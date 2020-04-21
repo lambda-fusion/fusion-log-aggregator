@@ -7,10 +7,11 @@ const cwl = new AWS.CloudWatchLogs({
 
 const dbUser = process.env.DB_USER
 const dbPassword = process.env.DB_PW
+const fusionConfigURL = process.env.FUSION_CONFIG
 
 
 const gatherData = async () => {
-  const response = await fetch('https://fusion-config.s3.eu-central-1.amazonaws.com/fusionConfiguration.json')
+  const response = await fetch(fusionConfigURL)
   const fusionConfig = await response.json()
   let result = {}
   await Promise.all(fusionConfig.map(async (fusionGroup) => {
