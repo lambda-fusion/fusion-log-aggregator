@@ -9,12 +9,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.653.0",
-    "dotenv": "^8.2.0",
     "mongodb": "^3.5.6",
     "node-fetch": "^2.6.0"
   },
   "devDependencies": {
+    "aws-sdk": "^2.653.0",
+    "dotenv": "^8.2.0",
     "serverless-dotenv-plugin": "^2.4.2"
   }
 }
