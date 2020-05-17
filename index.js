@@ -160,8 +160,8 @@ const gatherData = async () => {
     );
     value.totalDuration = calcSum(invocationInformationArr, "duration");
 
-    value.starttime = new Date(value.starttime).toISOString();
-    value.endtime = new Date(value.endtime).toISOString();
+    value.starttime = new Date(value.starttime);
+    value.endtime = new Date(value.endtime);
   });
   //console.dir(result, { depth: null })
 
