@@ -24,7 +24,6 @@ const gatherData = async () => {
           descending: true,
         })
         .promise();
-      //console.log(logStreams)
 
       for (const logStream of logStreams.logStreams) {
         let latestLogStream = {};
