@@ -119,8 +119,13 @@ const gatherData = async () => {
 
   Object.entries(result).map(([traceId, value]) => {
     if (
-      Object.values(value.invocationInformation).length !== fusionConfig.length
+      Object.values(value.invocationInformation).length < fusionConfig.length
     ) {
+      console.log(
+        "invocation information smaller than fusion config",
+        value.invocationInformation,
+        fusionConfig
+      );
       delete result[traceId];
       return;
     }
