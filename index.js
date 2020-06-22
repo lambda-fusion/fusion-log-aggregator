@@ -166,6 +166,7 @@ const gatherData = async () => {
 
     value.starttime = new Date(value.starttime);
     value.endtime = new Date(value.endtime);
+    value.lambdasCount = fusionConfig.length;
   });
   //console.dir(result, { depth: null })
 
