@@ -19,6 +19,10 @@ functions:
     handler: index.handler
     timeout: 60
     memorySize: 128
+    events:
+      - schedule:
+          rate: rate(5 minutes)
+          enabled: true
     environment:
       DB_USER: ${env:DB_USER}
       DB_PW: ${env:DB_PW}
