@@ -1,6 +1,9 @@
 require("dotenv").config();
 const AWS = require("aws-sdk");
 const fetch = require("node-fetch");
+const MongoClient = require("mongodb").MongoClient;
+const { calcSum, parseFloatWith } = require("./utils");
+
 const cwl = new AWS.CloudWatchLogs({
   region: "eu-central-1",
 });
@@ -176,7 +179,6 @@ const gatherData = async () => {
 };
 
 const writeToDb = async (result) => {
-  const MongoClient = require("mongodb").MongoClient;
   const uri = `mongodb+srv://${dbUser}:${dbPassword}@fusion-db-ul7hq.mongodb.net/test?retryWrites=true&w=majority`;
   const client = new MongoClient(uri, {
     useNewUrlParser: true,
@@ -193,21 +195,6 @@ const writeToDb = async (result) => {
   } finally {
     client.close();
   }
-};
-
-const parseFloatWith = (regex, input) => {
-  const res = regex.exec(input);
-  return parseFloat(res[1]);
-};
-
-const calcSum = (arr, key) => {
-  return parseFloat(
-    arr
-      .reduce((prev, curr) => {
-        return prev + curr[key];
-      }, 0)
-      .toFixed(2)
-  );
 };
 
 module.exports.handler = async () => {
