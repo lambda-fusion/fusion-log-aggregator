@@ -18,7 +18,7 @@ const gatherData = async () => {
   let result = {};
   await Promise.all(
     fusionConfig.map(async (fusionGroup) => {
-      const logGroupName = `/aws/lambda/${fusionGroup.entry}-stg`;
+      const logGroupName = `/aws/lambda/${fusionGroup.entry}`;
       const logStreams = await cwl
         .describeLogStreams({
           logGroupName,
@@ -39,6 +39,7 @@ const gatherData = async () => {
             nextToken: latestLogStream.nextForwardToken,
           };
           latestLogStream = await cwl.getLogEvents(params2).promise();
+          // console.log(latestLogStream);
           //console.log(fusionGroup.entry, latestLogStream)
           if (latestLogStream.events.length === 0) {
             continue;

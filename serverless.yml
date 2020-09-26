@@ -26,3 +26,4 @@ functions:
     environment:
       DB_USER: ${env:DB_USER}
       DB_PW: ${env:DB_PW}
+      FUSION_CONFIG: ${env:FUSION_CONFIG}
