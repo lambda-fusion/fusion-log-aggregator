@@ -18,7 +18,7 @@ const gatherData = async () => {
   let result = {};
   await Promise.all(
     fusionConfig.map(async (fusionGroup) => {
-      const logGroupName = `/aws/lambda/${fusionGroup.entry}`;
+      const logGroupName = `/aws/lambda/${fusionGroup.entry}-stg`;
       const logStreams = await cwl
         .describeLogStreams({
           logGroupName,
