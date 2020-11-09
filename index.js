@@ -105,7 +105,6 @@ const gatherData = async () => {
             }
 
             try {
-              console.log("Parse INFO message");
               const msg = logEvent.message.split("INFO").slice(-1)[0];
               const parsed = JSON.parse(msg);
               const requestId = logEvent.message
