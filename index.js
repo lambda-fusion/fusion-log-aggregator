@@ -31,6 +31,7 @@ const gatherData = async () => {
       for (const logStream of logStreams.logStreams) {
         let latestLogStream = {};
         let lastToken;
+        let currentTraceId = "";
         do {
           lastToken = latestLogStream.nextForwardToken;
           const params2 = {
@@ -46,6 +47,7 @@ const gatherData = async () => {
           }
 
           for (const logEvent of latestLogStream.events) {
+            // parse AWS provided values
             if (logEvent.message.startsWith("REPORT")) {
               const parts = logEvent.message.replace("\n", "").split("\t");
               const requestId = /REPORT RequestId: (.*)/.exec(parts[0])[1];
@@ -87,7 +89,23 @@ const gatherData = async () => {
               });
               continue;
             }
+
+            if (logEvent.message.includes("ERROR")) {
+              console.log("Application has thrown error", logEvent.message);
+              if (currentTraceId) {
+                Object.assign(result[currentTraceId] || {}, {
+                  error: {
+                    message: logEvent.message,
+                  },
+                });
+              } else {
+                console.log("no trace id beloning to current error", logEvent);
+              }
+              continue;
+            }
+
             try {
+              console.log("Parse INFO message");
               const msg = logEvent.message.split("INFO").slice(-1)[0];
               const parsed = JSON.parse(msg);
               const requestId = logEvent.message
@@ -95,18 +113,20 @@ const gatherData = async () => {
                 .split("\t")[1];
               const starttime = parsed.starttime;
               const endtime = parsed.endtime;
-              const traceId = parsed.traceId;
-              if (result[traceId]) {
+              currentTraceId = parsed.traceId;
+
+              // add current entry to existing result object
+              if (result[currentTraceId]) {
                 const obj = starttime ? { starttime } : { endtime };
-                result[traceId].invocationInformation[
+                result[currentTraceId].invocationInformation[
                   requestId
                 ] = Object.assign(
-                  result[traceId].invocationInformation[requestId] || {},
+                  result[currentTraceId].invocationInformation[requestId] || {},
                   obj
                 );
               } else {
-                result[traceId] = {
-                  traceId,
+                result[currentTraceId] = {
+                  traceId: currentTraceId,
                   starttime: "",
                   endtime: "",
                   invocationInformation: {
@@ -122,17 +142,18 @@ const gatherData = async () => {
   );
 
   Object.entries(result).map(([traceId, value]) => {
-    if (
-      Object.values(value.invocationInformation).length < fusionConfig.length
-    ) {
-      console.log(
-        "invocation information smaller than fusion config",
-        value.invocationInformation,
-        fusionConfig
-      );
-      delete result[traceId];
-      return;
-    }
+    // if (
+    //   Object.values(value.invocationInformation).length < fusionConfig.length
+    // ) {
+    //   console.log(
+    //     "invocation information smaller than fusion config",
+    //     value.invocationInformation,
+    //     fusionConfig
+    //   );
+    //   delete result[traceId];
+    //   return;
+    // }
+
     // find biggest endtime
     Object.values(value.invocationInformation).reduce((prev, curr) => {
       if (!curr.endtime) {
