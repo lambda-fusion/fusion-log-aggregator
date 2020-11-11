@@ -10,7 +10,8 @@ const cwl = new AWS.CloudWatchLogs({
 
 const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PW;
-const fusionConfigURL = process.env.FUSION_CONFIG;
+const dbUrl = process.env.DB_URL;
+const fusionConfigURL = process.env.DEPLOYMENT_CONFIG_URL;
 
 const gatherData = async () => {
   const response = await fetch(fusionConfigURL);
@@ -141,6 +142,7 @@ const gatherData = async () => {
   );
 
   Object.entries(result).map(([traceId, value]) => {
+    // // ensure all functions finished,
     // if (
     //   Object.values(value.invocationInformation).length < fusionConfig.length
     // ) {
@@ -200,13 +202,13 @@ const gatherData = async () => {
 };
 
 const writeToDb = async (result) => {
-  const uri = `mongodb+srv://${dbUser}:${dbPassword}@fusion-db-ul7hq.mongodb.net/test?retryWrites=true&w=majority`;
+  const uri = `mongodb+srv://${dbUser}:${dbPassword}@${dbUrl}`;
   const client = new MongoClient(uri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   });
   await client.connect();
-  const collection = client.db("fusion").collection("results");
+  const collection = client.db(process.env.DB_NAME).collection("results");
   await collection.createIndex({ traceId: 1 }, { unique: true });
   try {
     // perform actions on the collection object
