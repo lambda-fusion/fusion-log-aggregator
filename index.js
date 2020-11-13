@@ -67,7 +67,8 @@ const gatherData = async () => {
               );
               let coldStart;
               if (parts[5]) {
-                coldStart = parseFloatWith(/Init Duration: (.*) ms/i, parts[5]);
+                coldStart =
+                  parseFloatWith(/Init Duration: (.*) ms/i, parts[5]) || 0;
               }
               Object.keys(result).map((key) => {
                 if (
@@ -141,7 +142,7 @@ const gatherData = async () => {
     })
   );
 
-  Object.entries(result).map(([traceId, value]) => {
+  Object.entries(result).map(([traceId, entry]) => {
     // // ensure all functions finished,
     // if (
     //   Object.values(value.invocationInformation).length < fusionConfig.length
@@ -156,43 +157,44 @@ const gatherData = async () => {
     // }
 
     // find biggest endtime
-    Object.values(value.invocationInformation).reduce((prev, curr) => {
+    Object.values(entry.invocationInformation).reduce((prev, curr) => {
       if (!curr.endtime) {
         return prev;
       }
       if (curr.endtime && curr.endtime > prev) {
-        value.endtime = curr.endtime;
+        entry.endtime = curr.endtime;
         return curr.endtime;
       }
       return prev;
     }, 0);
     // find smallest starttime
-    Object.values(value.invocationInformation).reduce((prev, curr) => {
+    Object.values(entry.invocationInformation).reduce((prev, curr) => {
       if (!curr.starttime) {
         return prev;
       }
       if (curr.starttime < prev) {
-        value.starttime = curr.starttime;
+        entry.starttime = curr.starttime;
         return curr.starttime;
       }
       return prev;
     }, Number.MAX_SAFE_INTEGER);
-    const invocationInformationArr = Object.values(value.invocationInformation);
-    value.runtime = value.endtime - value.starttime;
-    value.totalMemoryUsed = calcSum(invocationInformationArr, "memoryUsed");
-    value.totalMemoryAllocated = calcSum(
+    const invocationInformationArr = Object.values(entry.invocationInformation);
+    entry.runtime = entry.endtime - entry.starttime;
+    entry.totalMemoryUsed = calcSum(invocationInformationArr, "memoryUsed");
+    entry.totalMemoryAllocated = calcSum(
       invocationInformationArr,
       "memorySize"
     );
-    value.totalBilledDuration = calcSum(
+    entry.totalBilledDuration = calcSum(
       invocationInformationArr,
       "billedDuration"
     );
-    value.totalDuration = calcSum(invocationInformationArr, "duration");
+    entry.totalDuration = calcSum(invocationInformationArr, "duration");
 
-    value.starttime = new Date(value.starttime);
-    value.endtime = new Date(value.endtime);
-    value.lambdasCount = fusionConfig.length;
+    entry.starttime = new Date(entry.starttime);
+    entry.endtime = new Date(entry.endtime);
+    entry.lambdasCount = fusionConfig.length;
+    entry.totalColdStartTime = calcSum(invocationInformationArr, "coldStart");
   });
   //console.dir(result, { depth: null })
 
