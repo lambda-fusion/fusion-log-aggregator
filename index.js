@@ -109,36 +109,62 @@ const gatherData = async (isS3Event) => {
               continue;
             }
 
+            const msg = logEvent.message.split("INFO").slice(-1)[0];
+            // try to parse as json
+            let parsed;
             try {
-              const msg = logEvent.message.split("INFO").slice(-1)[0];
-              const parsed = JSON.parse(msg);
-              const requestId = logEvent.message
-                .split("INFO")[0]
-                .split("\t")[1];
-              const starttime = parsed.starttime;
-              const endtime = parsed.endtime;
-              currentTraceId = parsed.traceId;
+              parsed = JSON.parse(msg);
+            } catch (err) {
+              continue;
+            }
 
-              // add current entry to existing result object
-              if (result[currentTraceId]) {
-                const obj = starttime ? { starttime } : { endtime };
-                result[currentTraceId].invocationInformation[
-                  requestId
-                ] = Object.assign(
-                  result[currentTraceId].invocationInformation[requestId] || {},
-                  obj
-                );
-              } else {
-                result[currentTraceId] = {
-                  traceId: currentTraceId,
-                  starttime: "",
-                  endtime: "",
-                  invocationInformation: {
-                    [requestId]: { starttime, endtime },
+            const requestId = logEvent.message.split("INFO")[0].split("\t")[1];
+            const starttime = parsed.starttime;
+            const endtime = parsed.endtime;
+            currentTraceId = parsed.traceId;
+            // console.log(
+            //   result[currentTraceId].invocationInformation[requestId]
+            //     .starttime
+            // );
+            // add current entry to existing result object
+            if (result[currentTraceId]) {
+              const currentInvocationInformation =
+                result[currentTraceId].invocationInformation[requestId] || {};
+              const currentStarttime = currentInvocationInformation.starttime;
+              const currentEndtime = currentInvocationInformation.endtime;
+
+              const invocationObject = starttime
+                ? {
+                    starttime: Math.min(
+                      starttime,
+                      currentStarttime || Number.MAX_VALUE
+                    ),
+                  }
+                : {
+                    endtime: Math.max(
+                      endtime,
+                      currentEndtime || Number.MIN_VALUE
+                    ),
+                  };
+              result[currentTraceId].invocationInformation[
+                requestId
+              ] = Object.assign(
+                currentInvocationInformation || {},
+                invocationObject
+              );
+            } else {
+              result[currentTraceId] = {
+                traceId: currentTraceId,
+                starttime: "",
+                endtime: "",
+                invocationInformation: {
+                  [requestId]: {
+                    starttime,
+                    endtime,
                   },
-                };
-              }
-            } catch (err) {}
+                },
+              };
+            }
           }
         } while (latestLogStream.nextForwardToken !== lastToken);
       }
@@ -230,9 +256,10 @@ const writeToDb = async (result) => {
 };
 
 module.exports.handler = async (event) => {
-  const isS3Event = !!event.Records[0];
+  const isS3Event = !!event.Records;
   console.log("is s3 event?", isS3Event);
   const result = await gatherData(isS3Event);
+  console.log(result);
   const errors = (await writeToDb(result)) || [];
   console.log(
     `Done. Inserted ${
