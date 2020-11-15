@@ -23,3 +23,9 @@ functions:
       - schedule:
           rate: rate(5 minutes)
           enabled: true
+      - s3:
+          bucket: ${env:DEPLOYMENT_CONFIG_BUCKET}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: config_old.json
+          existing: true

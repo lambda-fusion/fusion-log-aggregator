@@ -13,8 +13,11 @@ const dbPassword = process.env.DB_PW;
 const dbUrl = process.env.DB_URL;
 const fusionConfigURL = process.env.DEPLOYMENT_CONFIG_URL;
 
-const gatherData = async () => {
-  const response = await fetch(fusionConfigURL);
+const gatherData = async (isS3Event) => {
+  const configUrl = isS3Event
+    ? `${fusionConfigURL.split("/").slice(0, -1).join("/")}/config_old.json`
+    : fusionConfigURL;
+  const response = await fetch(configUrl);
   const fusionConfig = await response.json();
   let result = {};
   await Promise.all(
@@ -179,7 +182,11 @@ const gatherData = async () => {
       return prev;
     }, Number.MAX_SAFE_INTEGER);
     const invocationInformationArr = Object.values(entry.invocationInformation);
-    entry.runtime = entry.endtime - entry.starttime;
+    if (entry.endtime && entry.starttime) {
+      entry.runtime = entry.endtime - entry.starttime;
+    } else {
+      entry.runtime = Number.MAX_SAFE_INTEGER;
+    }
     entry.totalMemoryUsed = calcSum(invocationInformationArr, "memoryUsed");
     entry.totalMemoryAllocated = calcSum(
       invocationInformationArr,
@@ -222,8 +229,10 @@ const writeToDb = async (result) => {
   }
 };
 
-module.exports.handler = async () => {
-  const result = await gatherData();
+module.exports.handler = async (event) => {
+  const isS3Event = !!event.Records[0];
+  console.log("is s3 event?", isS3Event);
+  const result = await gatherData(isS3Event);
   const errors = (await writeToDb(result)) || [];
   console.log(
     `Done. Inserted ${

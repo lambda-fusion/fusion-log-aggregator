@@ -7,7 +7,7 @@ exports.calcSum = (arr, key) => {
   return parseFloat(
     arr
       .reduce((prev, curr) => {
-        return prev + curr[key];
+        return prev + (curr[key] || 0);
       }, 0)
       .toFixed(2)
   );
