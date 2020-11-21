@@ -95,8 +95,14 @@ const gatherData = async (isS3Event) => {
               continue;
             }
 
-            if (logEvent.message.includes("ERROR")) {
-              console.log("Application has thrown error", logEvent.message);
+            if (
+              logEvent.message.includes("ERROR") ||
+              logEvent.message.includes("Task timed out after")
+            ) {
+              console.log(
+                "Application has thrown error or timed out",
+                logEvent.message
+              );
               if (currentTraceId) {
                 Object.assign(result[currentTraceId] || {}, {
                   error: {
@@ -104,7 +110,7 @@ const gatherData = async (isS3Event) => {
                   },
                 });
               } else {
-                console.log("no trace id beloning to current error", logEvent);
+                console.log("no trace id belonging to current error", logEvent);
               }
               continue;
             }
@@ -173,17 +179,17 @@ const gatherData = async (isS3Event) => {
 
   Object.entries(result).map(([traceId, entry]) => {
     // // ensure all functions finished,
-    // if (
-    //   Object.values(value.invocationInformation).length < fusionConfig.length
-    // ) {
-    //   console.log(
-    //     "invocation information smaller than fusion config",
-    //     value.invocationInformation,
-    //     fusionConfig
-    //   );
-    //   delete result[traceId];
-    //   return;
-    // }
+    if (
+      Object.values(entry.invocationInformation).length < fusionConfig.length
+    ) {
+      console.log(
+        "invocation information smaller than fusion config",
+        entry.invocationInformation,
+        fusionConfig
+      );
+      delete result[traceId];
+      return;
+    }
 
     // find biggest endtime
     Object.values(entry.invocationInformation).reduce((prev, curr) => {
@@ -210,8 +216,6 @@ const gatherData = async (isS3Event) => {
     const invocationInformationArr = Object.values(entry.invocationInformation);
     if (entry.endtime && entry.starttime) {
       entry.runtime = entry.endtime - entry.starttime;
-    } else {
-      entry.runtime = Number.MAX_SAFE_INTEGER;
     }
     entry.totalMemoryUsed = calcSum(invocationInformationArr, "memoryUsed");
     entry.totalMemoryAllocated = calcSum(
@@ -259,7 +263,6 @@ module.exports.handler = async (event) => {
   const isS3Event = !!event.Records;
   console.log("is s3 event?", isS3Event);
   const result = await gatherData(isS3Event);
-  console.log(result);
   const errors = (await writeToDb(result)) || [];
   console.log(
     `Done. Inserted ${
