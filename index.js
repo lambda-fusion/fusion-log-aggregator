@@ -73,6 +73,7 @@ const gatherData = async (isS3Event) => {
                 coldStart =
                   parseFloatWith(/Init Duration: (.*) ms/i, parts[5]) || 0;
               }
+
               Object.keys(result).map((key) => {
                 if (
                   Object.keys(result[key].invocationInformation).includes(
@@ -91,6 +92,9 @@ const gatherData = async (isS3Event) => {
                     }
                   );
                 }
+                if (currentTraceId === "6a204932-71eb-48e1-8010-2c13f675bb75") {
+                  console.log(result[currentTraceId]);
+                }
               });
               continue;
             }
@@ -101,7 +105,8 @@ const gatherData = async (isS3Event) => {
             ) {
               console.log(
                 "Application has thrown error or timed out",
-                logEvent.message
+                logEvent.message,
+                currentTraceId
               );
               if (currentTraceId) {
                 Object.assign(result[currentTraceId] || {}, {
@@ -128,6 +133,7 @@ const gatherData = async (isS3Event) => {
             const starttime = parsed.starttime;
             const endtime = parsed.endtime;
             currentTraceId = parsed.traceId;
+
             // console.log(
             //   result[currentTraceId].invocationInformation[requestId]
             //     .starttime
@@ -179,17 +185,17 @@ const gatherData = async (isS3Event) => {
 
   Object.entries(result).map(([traceId, entry]) => {
     // // ensure all functions finished,
-    if (
-      Object.values(entry.invocationInformation).length < fusionConfig.length
-    ) {
-      console.log(
-        "invocation information smaller than fusion config",
-        entry.invocationInformation,
-        fusionConfig
-      );
-      delete result[traceId];
-      return;
-    }
+    // if (
+    //   Object.values(entry.invocationInformation).length < fusionConfig.length
+    // ) {
+    //   console.log(
+    //     "invocation information smaller than fusion config",
+    //     entry.invocationInformation,
+    //     fusionConfig
+    //   );
+    //   delete result[traceId];
+    //   return;
+    // }
 
     // find biggest endtime
     Object.values(entry.invocationInformation).reduce((prev, curr) => {
@@ -250,8 +256,9 @@ const writeToDb = async (result) => {
   const collection = client.db(process.env.DB_NAME).collection("results");
   await collection.createIndex({ traceId: 1 }, { unique: true });
   try {
-    // perform actions on the collection object
-    await collection.insertMany(Object.values(result), { ordered: false });
+    await collection.updateMany(Object.values(result), {
+      upsert: true,
+    });
   } catch (err) {
     return err.writeErrors;
   } finally {
@@ -265,11 +272,9 @@ module.exports.handler = async (event) => {
   const result = await gatherData(isS3Event);
   const errors = (await writeToDb(result)) || [];
   console.log(
-    `Done. Inserted ${
-      Object.values(result).length - errors.length
-    } new entries to DB`
+    `Done. Updated ${Object.values(result).length - errors.length} entries`
   );
-  return `Done. Inserted ${
+  return `Done. Updated ${
     Object.values(result).length - errors.length
-  } new entries to DB`;
+  } new entries`;
 };
