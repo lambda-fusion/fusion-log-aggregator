@@ -256,9 +256,7 @@ const writeToDb = async (result) => {
   const collection = client.db(process.env.DB_NAME).collection("results");
   await collection.createIndex({ traceId: 1 }, { unique: true });
   try {
-    await collection.updateMany(Object.values(result), {
-      upsert: true,
-    });
+    await collection.insertMany(Object.values(result), { ordered: false });
   } catch (err) {
     return err.writeErrors;
   } finally {
@@ -272,9 +270,9 @@ module.exports.handler = async (event) => {
   const result = await gatherData(isS3Event);
   const errors = (await writeToDb(result)) || [];
   console.log(
-    `Done. Updated ${Object.values(result).length - errors.length} entries`
+    `Done. Inserted ${Object.values(result).length - errors.length} entries`
   );
-  return `Done. Updated ${
+  return `Done. Inserted ${
     Object.values(result).length - errors.length
   } new entries`;
 };
